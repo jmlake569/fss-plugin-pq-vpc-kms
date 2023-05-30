@@ -14,7 +14,7 @@ Metadata:
     Labels: [trendmicro, cloudone, filestorage, s3, bucket, plugin, promote, quarantine]
     HomePageUrl: https://github.com/trendmicro/cloudone-filestorage-plugins
     SemanticVersion: 1.1.0
-    SourceCodeUrl: s3://test-fss-deploy-1/aws-python-promote-or-quarantine/
+    SourceCodeUrl: https://test-fss-deploy-1.s3.amazonaws.com/aws-python-promote-or-quarantine/
 
 Parameters:
   ScanningBucketName:
@@ -134,7 +134,7 @@ Resources:
   PromoteOrQuarantineLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://test-fss-deploy-1/aws-python-promote-or-quarantine/pq.zip
+      CodeUri: https://test-fss-deploy-1.s3.amazonaws.com/aws-python-promote-or-quarantine/pq.zip
       Handler: handler.lambda_handler
       Runtime: python3.8
       MemorySize: 512
