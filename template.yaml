@@ -14,7 +14,7 @@ Metadata:
     Labels: [trendmicro, cloudone, filestorage, s3, bucket, plugin, promote, quarantine]
     HomePageUrl: https://github.com/trendmicro/cloudone-filestorage-plugins
     SemanticVersion: 1.1.0
-    SourceCodeUrl: https://test-fss-deploy-1.s3.amazonaws.com/aws-python-promote-or-quarantine/
+    SourceCodeUrl: s3://test-fss-deploy-1/aws-python-promote-or-quarantine
 
 Parameters:
   ScanningBucketName:
@@ -98,8 +98,8 @@ Conditions:
     !Not [!Equals [!Ref QuarantineBucketName, '']]
   PutACL:
     !Not [!Equals [!Ref ACL, '']]
-  KMSKeyEnabled:
-    !Not [!Equals [!Ref KMSKeyARN, '']]
+  IsBucketSSEKMSEnabled:
+      !Not [!Equals [!Ref KMSKeyARN, '']]
   HasPermissionsBoundary:
     !Not [!Equals [!Ref PermissionsBoundary, '']]
   VpcEnabled: !Not [!Or [!Equals [!Ref VpcSubnetId, ''], !Equals [!Ref VpcSecurityGroupId, '']]]
@@ -134,7 +134,7 @@ Resources:
   PromoteOrQuarantineLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: https://test-fss-deploy-1.s3.amazonaws.com/aws-python-promote-or-quarantine/pq.zip
+      CodeUri: s3://test-fss-deploy-1/aws-python-promote-or-quarantine/pq.zip
       Handler: handler.lambda_handler
       Runtime: python3.8
       MemorySize: 512
@@ -154,6 +154,7 @@ Resources:
           PROMOTEMODE: !Ref PromoteMode
           QUARANTINEBUCKET: !Ref QuarantineBucketName
           QUARANTINEMODE: !Ref QuarantineMode
+          KMSKEYARN: !Ref KMSKeyARN
           ACL: !Ref ACL
       Policies:
         - Statement:
@@ -167,17 +168,16 @@ Resources:
         - Statement:
             Effect: Allow
             Action:
-              - s3:ListBucket
               - !If
-                - KMSKeyEnabled
-                - - kms:GenerateDataKey
-                  - kms:Decrypt
+                - IsBucketSSEKMSEnabled
+                - kms:Decrypt
                 - !Ref AWS::NoValue
             Resource:
-              - !Sub arn:${AWS::Partition}:s3:::${ScanningBucketName}
+              - !Ref KMSKeyARN
         - Statement:
             Effect: Allow
             Action:
+              - s3:ListBucket
               - s3:PutObject
               - s3:PutObjectTagging
               - !If
@@ -193,12 +193,12 @@ Resources:
                 - QuarantineEnabled
                 - !Sub arn:${AWS::Partition}:s3:::${QuarantineBucketName}/*
                 - !Ref AWS::NoValue
-    PermissionsBoundary: !If
-      - HasPermissionsBoundary
-      - !Ref PermissionsBoundary
-      - !Ref AWS::NoValue
-    Events:
-      ScanResult:
-        Type: SNS
-        Properties:
-          Topic: !Ref ScanResultTopicARN
+      PermissionsBoundary: !If
+        - HasPermissionsBoundary
+        - !Ref PermissionsBoundary
+        - !Ref AWS::NoValue
+      Events:
+        ScanResult:
+          Type: SNS
+          Properties:
+            Topic: !Ref ScanResultTopicARN
